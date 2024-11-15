@@ -1,0 +1,1 @@
+{"similarity": "tversky", "topK": 3, "shrink": 611, "feature_weighting": "BM25", "tversky_alpha": 0.3345825602636454, "tversky_beta": 1.1540400137943267}
