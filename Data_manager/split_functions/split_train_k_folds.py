@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse as sps
 from Data_manager.IncrementalSparseMatrix import IncrementalSparseMatrix
 
-def split_train_k_folds(URM_train, k=10):
+def split_train_k_folds(URM_all, k=10):
     """
     Split the URM into k folds for cross-validation.
     :param URM_all: Full user-item interaction matrix (sparse matrix).
@@ -20,10 +20,10 @@ def split_train_k_folds(URM_train, k=10):
     assert k > 1, "Number of folds must be greater than 1."
     
     # Get the number of users and items
-    num_users, num_items = URM_train.shape
+    num_users, num_items = URM_all.shape
 
     # Shuffle the interaction indices randomly
-    URM_train = sps.coo_matrix(URM_train)
+    URM_train = sps.coo_matrix(URM_all)
     indices_for_sampling = np.arange(0, URM_train.nnz, dtype=np.int32)
     np.random.shuffle(indices_for_sampling)
 
