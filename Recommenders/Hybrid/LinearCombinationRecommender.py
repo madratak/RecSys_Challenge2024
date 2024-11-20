@@ -41,7 +41,7 @@ class LinearCombinationRecommender(BaseItemSimilarityMatrixRecommender):
         for recommender, weight in zip(self.recommenders, self.weights):
             
             item_scores = recommender._compute_item_score(user_id_array, items_to_compute)
-            norm_item_scores = LA.norm(item_scores, self.norm, axis=1, keepdims=True)            
+            norm_item_scores = LA.norm(item_scores, self.norm, axis=1, keepdims=True) + 1e-6          
             scores += weight * (item_scores / norm_item_scores)
         
         return scores
