@@ -24,7 +24,7 @@ def split_train_k_folds(URM_train, k=10):
 
     # Shuffle the interaction indices randomly
     URM_train = sps.coo_matrix(URM_train)
-    indices_for_sampling = np.arange(0, URM_train.nnz, np.int32)
+    indices_for_sampling = np.arange(0, URM_train.nnz, dtype=np.int32)
     np.random.shuffle(indices_for_sampling)
 
     # Split the interactions into k folds
