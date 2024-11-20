@@ -30,7 +30,7 @@ class LinearCombinationRecommender(BaseItemSimilarityMatrixRecommender):
         start_time = time.time()
         self.weights = np.array(weights)
         total_time = time.time() - start_time
-        self._print("Fit completed in {:.2f} seconds.").format(total_time)
+        self._print(f"Fit completed in {total_time:.2f} seconds.")
 
 
     def _compute_item_score(self, user_id_array, items_to_compute=None):
