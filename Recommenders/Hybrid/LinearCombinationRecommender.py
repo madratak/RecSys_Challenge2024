@@ -29,11 +29,11 @@ class LinearCombinationRecommender(BaseRecommender):
         self.weights = np.array(weights)
 
 
-    def _compute_item_score(self, user_id_array):
+    def _compute_item_score(self, user_id_array, items_to_compute=None):
     
         scores = np.zeros((len(user_id_array), self.URM_train.shape[1]))
         
         for recommender, weight in zip(self.recommenders, self.weights):
-            scores += weight * recommender._compute_item_score(user_id_array)
+            scores += weight * recommender._compute_item_score(user_id_array, items_to_compute)
         
         return scores
