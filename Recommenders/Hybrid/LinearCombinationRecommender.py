@@ -10,7 +10,7 @@ import time
 from Recommenders.BaseRecommender import BaseRecommender
 from Recommenders.BaseSimilarityMatrixRecommender import BaseItemSimilarityMatrixRecommender
 
-class LinearCombinationRecommender(BaseRecommender, BaseItemSimilarityMatrixRecommender):
+class LinearCombinationRecommender(BaseItemSimilarityMatrixRecommender):
     """
     LinearCombinationRecommender combines scores from multiple models using weighted sums, 
     enabling flexible integration of different recommenders.
