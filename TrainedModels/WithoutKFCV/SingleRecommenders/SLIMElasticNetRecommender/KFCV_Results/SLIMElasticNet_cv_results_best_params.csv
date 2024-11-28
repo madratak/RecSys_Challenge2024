@@ -1,0 +1,2 @@
+params,k_folds,cv_result
+"{'topK': 1175, 'l1_ratio': 0.1673041961676735, 'alpha': 0.0001802206495940897, 'positive_only': True}",5,0.06110889926239556
