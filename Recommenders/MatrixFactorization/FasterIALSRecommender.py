@@ -28,5 +28,3 @@ def fit(self, factors=64, regularization=0.05, iterations=15, alpha=2.0):
 
         self.USER_factors = self.als_model.user_factors
         self.ITEM_factors = self.als_model.item_factors
-
-        self._print(f"{self.RECOMMENDER_NAME} training complete!")
