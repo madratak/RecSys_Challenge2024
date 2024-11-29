@@ -16,8 +16,7 @@ class FasterIALSRecommender(BaseMatrixFactorizationRecommender):
         self.als_model = None
 
 def fit(self, factors=64, regularization=0.05, iterations=15, alpha=2.0):
-        self._print(f"Training {self.RECOMMENDER_NAME}...")
-
+        
         self.als_model = implicit.als.AlternatingLeastSquares(
             factors=factors,
             regularization=regularization,
