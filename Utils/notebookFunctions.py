@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on 30/03/2019
-
 @author: Mauro Orazio Drago
 """
 from github import Github, Auth
