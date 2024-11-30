@@ -160,5 +160,3 @@ class ScaledPureSVDRecommender(PureSVDRecommender):
         self.URM_train = user_scaling_matrix.dot(self.URM_train).dot(item_scaling_matrix)
 
         super(ScaledPureSVDRecommender, self).fit(num_factors = num_factors, random_seed = random_seed)
-
-
