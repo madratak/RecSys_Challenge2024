@@ -82,12 +82,12 @@ def create_submission(data_target_users_test, recommender_instance, output_file,
     - output_file (str): The file path where the submission file will be saved. 
     """
 
-    target_result = []
+    user_ids = data_target_users_test["user_id"].values
 
-    for target in data_target_users_test["user_id"]:
-        target_result.append(recommender_instance.recommend(target, cutoff=cutoff, remove_seen_flag=True))
+    target_result = recommender_instance.recommend(
+        user_ids, cutoff=cutoff, remove_seen_flag=True
+    )
 
-    user_ids = data_target_users_test["user_id"]
     formatted_data = {
         "user_id": user_ids,
         "item_list": [" ".join(map(str, items)) for items in target_result]
