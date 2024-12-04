@@ -5,6 +5,7 @@
 """
 from github import Github, Auth
 import pandas as pd
+import numpy as np
 
 def get_repo_from_github(token):
     """
@@ -84,14 +85,26 @@ def create_submission(data_target_users_test, recommender_instance, output_file,
 
     user_ids = data_target_users_test["user_id"].values
 
-    target_result = recommender_instance.recommend(
-        user_ids, cutoff=cutoff, remove_seen_flag=True
-    )
+    # Define the chunk size since notebook might try to allocate more memory than is available.
+    chunk_size = int(np.ceil(len(user_ids) / 2))
 
-    formatted_data = {
-        "user_id": user_ids,
-        "item_list": [" ".join(map(str, items)) for items in target_result]
-    }
+    formatted_data = {"user_id": [], "item_list": []}
+
+    for i in range(0, len(user_ids), chunk_size):
+        
+        user_ids_chunk = user_ids[i:i + chunk_size]
+
+        target_result_chunk = recommender_instance.recommend(
+            user_ids_chunk, cutoff=cutoff, remove_seen_flag=True
+        )
+
+        formatted_data["user_id"].extend(user_ids_chunk)
+        formatted_data["item_list"].extend(
+            [" ".join(map(str, items)) for items in target_result_chunk]
+        )
+
+        # Print progress for debugging
+        # print(f"Processed chunk {i // chunk_size + 1}/{-(-len(user_ids) // chunk_size)}")
 
     submission_df = pd.DataFrame(formatted_data)
     submission_df.to_csv(output_file, index=False, header=["user_id", "item_list"])
