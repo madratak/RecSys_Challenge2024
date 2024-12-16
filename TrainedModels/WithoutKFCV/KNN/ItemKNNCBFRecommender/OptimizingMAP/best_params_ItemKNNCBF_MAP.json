@@ -1,0 +1,1 @@
+{"similarity": "cosine", "topK": 9, "shrink": 979, "feature_weighting": "BM25"}
