@@ -7,6 +7,7 @@
 import numpy as np
 import scipy.sparse as sps
 from Recommenders.BaseRecommender import BaseRecommender
+from scipy.sparse import csr_matrix
 from xgboost import XGBRanker
 
 class XGBoostRankerRecommender(BaseRecommender):
@@ -15,7 +16,7 @@ class XGBoostRankerRecommender(BaseRecommender):
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
     def __init__(self, training_dataframe, verbose=True):
-        super(XGBoostRankerRecommender, self).__init__(URM_train=np.empty((0,0)), verbose=verbose)
+        super(XGBoostRankerRecommender, self).__init__(URM_train=csr_matrix((0, 0)), verbose=verbose)
         self.training_dataframe = training_dataframe
         self.recommendations_dataframe = None
         self.model = None
