@@ -2,10 +2,7 @@
 @author: Mauro Orazio Drago
 """
 
-import numpy as np
-import scipy.sparse as sps
 from xgboost import XGBRanker
-import pandas as pd
 
 class XGBoostRankerRecommender:
     """XGBoost Ranker Recommender"""
@@ -27,9 +24,9 @@ class XGBoostRankerRecommender:
         """
         self.recommendations_dataframe = recommendations_dataframe
 
-    def fit(self, X_train, y_train, groups, n_estimators=50, learning_rate=1e-1, reg_alpha=1e-1, 
-            reg_lambda=1e-1, max_depth=5, max_leaves=0, grow_policy="depthwise", 
-            objective="pairwise", booster="gbtree", random_seed=None):
+    def fit(self, X_train, y_train, groups, n_estimators=50, learning_rate=0.1, reg_alpha=0.1, 
+            reg_lambda=0.1, max_depth=5, max_leaves=0, grow_policy="depthwise", 
+            objective="pairwise", booster="gbtree", random_seed=None, tree_method="hist"):
         """
         Train the XGBoost Ranker model.
 
@@ -47,6 +44,7 @@ class XGBoostRankerRecommender:
         - objective: Ranking objective function.
         - booster: Type of booster to use.
         - random_seed: Random seed for reproducibility.
+        - tree_method: Tree construction algorithm (e.g., 'hist', 'approx', 'gpu_hist').
         """
 
         # Initialize and train the XGBRanker
@@ -60,76 +58,49 @@ class XGBoostRankerRecommender:
             max_depth=int(max_depth),
             max_leaves=int(max_leaves),
             grow_policy=grow_policy,
-            verbosity=0,  # Adjust verbosity if needed
+            verbosity=2 if self.verbose else 0,
             booster=booster,
             enable_categorical=True,
-            tree_method="hist"  # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
+            tree_method=tree_method
         )
 
         self.model.fit(
             X_train,
             y_train,
             group=groups,
-            verbose=True
+            verbose=self.verbose
         )
 
-    def _compute_item_score(self, user_id_array, items_to_compute=None):
+    def recommend(self, user_ids, cutoff=10, remove_seen_flag=True):
         """
-        Compute item scores for given users.
+        Generate recommendations for the given users.
 
         Parameters:
-        - user_id_array: Array containing the user indices.
-        - items_to_compute: Array containing items to compute scores for. If None, compute for all items.
+        - user_ids: List or array of user IDs.
+        - cutoff: Number of top recommendations to return.
+        - remove_seen_flag: If True, remove items the user has already interacted with.
 
         Returns:
-        - Array of scores with shape (len(user_id_array), n_items).
+        - A dictionary with user IDs as keys and recommended item IDs as values.
         """
-        scores = []
-        for user_id in user_id_array:
-            X_user = self.recommendations_dataframe[self.recommendations_dataframe['UserID'] == user_id]
+        recommendations = {}
 
-            # Filter by items_to_compute if provided
-            if items_to_compute is not None:
-                X_user = X_user[X_user['ItemID'].isin(items_to_compute)]
+        for user_id in user_ids:
+            X_user = self.recommendations_dataframe[self.recommendations_dataframe['UserID'] == user_id]
 
             # Predict scores
             user_scores = self.model.predict(X_user)
-            scores.append(user_scores)
+            X_user['score'] = user_scores
 
-        return np.array(scores)
+            # Sort by score
+            X_user_sorted = X_user.sort_values(by='score', ascending=False)
 
-    def recommend(self, user_id_array, cutoff=10, remove_seen_flag=True):
-        """
-        Generate recommendations for the given user IDs.
-
-        Parameters:
-        - user_id_array: Array of user IDs.
-        - cutoff: Number of top recommendations to return.
-        - remove_seen_flag: Flag to remove items that have already been seen by the user.
-
-        Returns:
-        - DataFrame of recommendations for each user.
-        """
-        all_recommendations = []
-        
-        for user_id in user_id_array:
-            X_user = self.recommendations_dataframe[self.recommendations_dataframe['UserID'] == user_id]
-            scores = self._compute_item_score([user_id])
-            
-            # Sort items based on predicted scores
-            recommendations = X_user.assign(score=scores[0])
-            recommendations = recommendations.sort_values(by='score', ascending=False)
-            
+            # Remove seen items if flag is set
             if remove_seen_flag:
-                # Remove items already seen by the user (this would require having seen items in the dataframe)
-                recommendations = recommendations[~recommendations['ItemID'].isin(X_user['ItemID'])]
-            
-            # Apply cutoff to return only the top recommendations
-            top_recommendations = recommendations.head(cutoff)
-            all_recommendations.append(top_recommendations[['UserID', 'ItemID', 'score']])
-        
-        # Combine all recommendations into a single dataframe
-        recommendations_df = pd.concat(all_recommendations, axis=0)
-        
-        # Return the recommendations as a DataFrame
-        return recommendations_df
+                seen_items = self.training_dataframe[self.training_dataframe['UserID'] == user_id]['ItemID']
+                X_user_sorted = X_user_sorted[~X_user_sorted['ItemID'].isin(seen_items)]
+
+            # Get top items
+            recommendations[user_id] = X_user_sorted['ItemID'].head(cutoff).tolist()
+
+        return recommendations
