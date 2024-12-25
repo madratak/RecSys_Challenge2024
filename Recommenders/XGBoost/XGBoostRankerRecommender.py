@@ -60,7 +60,7 @@ class XGBoostRankerRecommender:
             grow_policy=grow_policy,
             verbosity=2 if self.verbose else 0,
             booster=booster,
-            # enable_categorical=True,
+            enable_categorical=True,
             tree_method=tree_method
         )
 
