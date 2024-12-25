@@ -9,7 +9,7 @@ class XGBoostRankerRecommender:
 
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
-    def __init__(self, training_dataframe, verbose=True):
+    def __init__(self, training_dataframe, verbose=False):
         self.training_dataframe = training_dataframe
         self.recommendations_dataframe = None
         self.model = None
@@ -60,7 +60,7 @@ class XGBoostRankerRecommender:
             grow_policy=grow_policy,
             verbosity=2 if self.verbose else 0,
             booster=booster,
-            enable_categorical=True,
+            # enable_categorical=True,
             tree_method=tree_method
         )
 
