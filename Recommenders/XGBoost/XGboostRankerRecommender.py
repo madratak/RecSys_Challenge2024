@@ -72,7 +72,7 @@ class XGBoostRankerRecommender(BaseRecommender):
             X_train,
             y_train,
             group=groups,
-            verbose=False
+            verbose=True
         )
 
     def _compute_item_score(self, user_id_array, items_to_compute=None):
