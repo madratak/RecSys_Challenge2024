@@ -78,7 +78,7 @@ def fit_recommenders(metric, URM_train, ICM_all, recommenders, GH_PATH):
     return fitted_recommenders
 
 
-def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_recommenders, ICM, reference_URM=None, cutoff=50, categorical=False):
+def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_recommenders, ICM, reference_URM=None, cutoff=50, categorical=False, contents=False):
     """
     Create a DataFrame for a recommendation system pipeline, including additional feature generation from recommenders.
 
@@ -132,6 +132,7 @@ def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_rec
     for user_id in tqdm(range(n_users)):
         for rec_label, rec_instance in features_recommenders.items():
             item_list = interaction_dataframe.loc[user_id, "ItemID"].values.tolist()
+            item_list = np.array(item_list, dtype=int)
 
             all_item_scores = rec_instance._compute_item_score([user_id], items_to_compute=item_list)
 
@@ -150,10 +151,11 @@ def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_rec
     interaction_dataframe['user_profile_len'] = user_popularity[interaction_dataframe["UserID"].values.astype(int)]
 
     # Add content-based features from ICM
-    features_df = pd.DataFrame.sparse.from_spmatrix(ICM)
-    interaction_dataframe = interaction_dataframe.set_index('ItemID').join(features_df, how='inner')
-    interaction_dataframe = interaction_dataframe.reset_index()
-    interaction_dataframe = interaction_dataframe.rename(columns={"index": "ItemID"})
+    if contents:
+        features_df = pd.DataFrame.sparse.from_spmatrix(ICM)
+        interaction_dataframe = interaction_dataframe.set_index('ItemID').join(features_df, how='inner')
+        interaction_dataframe = interaction_dataframe.reset_index()
+        interaction_dataframe = interaction_dataframe.rename(columns={"index": "ItemID"})
 
     # Clean and sort data
     interaction_dataframe = interaction_dataframe.sort_values("UserID").reset_index()
