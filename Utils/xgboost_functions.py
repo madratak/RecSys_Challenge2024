@@ -36,7 +36,7 @@ def fit_recommenders(metric, URM_train, ICM_all, recommenders, GH_PATH):
         "ScaledPureSVD": "MatrixFactorization/PureSVDRecommender",
         "MultVAE": "Neural",
         "SLIMElasticNet": "SLIM",
-        "SLIM_BPR_": "SLIM",
+        "SLIM_BPR": "SLIM",
     }
     
     fitted_recommenders = {}
