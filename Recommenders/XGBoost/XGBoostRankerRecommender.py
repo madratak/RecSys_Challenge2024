@@ -1,32 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Mauro Orazio Drago
 """
 
 import numpy as np
 import scipy.sparse as sps
-from Recommenders.BaseRecommender import BaseRecommender
-from scipy.sparse import csr_matrix
 from xgboost import XGBRanker
+import pandas as pd
 
-class XGBoostRankerRecommender(BaseRecommender):
+class XGBoostRankerRecommender:
     """XGBoost Ranker Recommender"""
 
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
     def __init__(self, training_dataframe, verbose=True):
-        super(XGBoostRankerRecommender, self).__init__(URM_train=csr_matrix((0, 0)), verbose=verbose)
         self.training_dataframe = training_dataframe
         self.recommendations_dataframe = None
         self.model = None
+        self.verbose = verbose
 
     def set_recommendations_dataframe(self, recommendations_dataframe):
         """
-        Update the training dataframe.
+        Update the recommendations dataframe.
 
         Parameters:
-        - new_training_dataframe: New dataframe to be used for training.
+        - recommendations_dataframe: New dataframe to be used for recommendations.
         """
         self.recommendations_dataframe = recommendations_dataframe
 
@@ -93,10 +90,46 @@ class XGBoostRankerRecommender(BaseRecommender):
 
             # Filter by items_to_compute if provided
             if items_to_compute is not None:
-                user_data = user_data[user_data['ItemID'].isin(items_to_compute)]
+                X_user = X_user[X_user['ItemID'].isin(items_to_compute)]
 
             # Predict scores
             user_scores = self.model.predict(X_user)
             scores.append(user_scores)
 
         return np.array(scores)
+
+    def recommend(self, user_id_array, cutoff=10, remove_seen_flag=True):
+        """
+        Generate recommendations for the given user IDs.
+
+        Parameters:
+        - user_id_array: Array of user IDs.
+        - cutoff: Number of top recommendations to return.
+        - remove_seen_flag: Flag to remove items that have already been seen by the user.
+
+        Returns:
+        - DataFrame of recommendations for each user.
+        """
+        all_recommendations = []
+        
+        for user_id in user_id_array:
+            X_user = self.recommendations_dataframe[self.recommendations_dataframe['UserID'] == user_id]
+            scores = self._compute_item_score([user_id])
+            
+            # Sort items based on predicted scores
+            recommendations = X_user.assign(score=scores[0])
+            recommendations = recommendations.sort_values(by='score', ascending=False)
+            
+            if remove_seen_flag:
+                # Remove items already seen by the user (this would require having seen items in the dataframe)
+                recommendations = recommendations[~recommendations['ItemID'].isin(X_user['ItemID'])]
+            
+            # Apply cutoff to return only the top recommendations
+            top_recommendations = recommendations.head(cutoff)
+            all_recommendations.append(top_recommendations[['UserID', 'ItemID', 'score']])
+        
+        # Combine all recommendations into a single dataframe
+        recommendations_df = pd.concat(all_recommendations, axis=0)
+        
+        # Return the recommendations as a DataFrame
+        return recommendations_df
