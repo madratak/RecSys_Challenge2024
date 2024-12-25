@@ -9,7 +9,8 @@ class XGBoostRankerRecommender:
 
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
-    def __init__(self, training_dataframe, verbose=False):
+    def __init__(self, URM_train, training_dataframe, verbose=False):
+        self.URM_train = URM_train
         self.training_dataframe = training_dataframe
         self.recommendations_dataframe = None
         self.model = None
