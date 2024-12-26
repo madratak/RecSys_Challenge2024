@@ -2,15 +2,18 @@
 @author: Mauro Orazio Drago
 """
 
+import numpy as np
+from Recommenders.BaseRecommender import BaseRecommender
 from xgboost import XGBRanker
 
-class XGBoostRankerRecommender:
+class XGBoostRankerRecommender(BaseRecommender):
     """XGBoost Ranker Recommender"""
 
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
-    def __init__(self, URM_train, training_dataframe, verbose=False):
-        self.URM_train = URM_train
+    def __init__(self, URM_train, training_dataframe, verbose=True):
+        super(XGBoostRankerRecommender, self).__init__(URM_train)
+
         self.training_dataframe = training_dataframe
         self.recommendations_dataframe = None
         self.model = None
@@ -59,7 +62,7 @@ class XGBoostRankerRecommender:
             max_depth=int(max_depth),
             max_leaves=int(max_leaves),
             grow_policy=grow_policy,
-            verbosity=2 if self.verbose else 0,
+            verbosity=0, # if 2 self.verbose else 0,
             booster=booster,
             enable_categorical=True,
             tree_method=tree_method
@@ -72,36 +75,45 @@ class XGBoostRankerRecommender:
             verbose=self.verbose
         )
 
-    def recommend(self, user_ids, cutoff=10, remove_seen_flag=True):
+    def _compute_item_score(self, user_id_array, items_to_compute=None):
         """
-        Generate recommendations for the given users.
-
+        Compute item scores for the given users.
+    
         Parameters:
-        - user_ids: List or array of user IDs.
-        - cutoff: Number of top recommendations to return.
-        - remove_seen_flag: If True, remove items the user has already interacted with.
-
+        - user_id_array: Array of user IDs for whom to compute scores.
+        - items_to_compute: Array of item IDs to score. If None, scores all items.
+    
         Returns:
-        - A dictionary with user IDs as keys and recommended item IDs as values.
+        - scores_matrix: A 2D NumPy array of shape (len(user_id_array), n_items),
+          where n_items corresponds to the total number of items in the dataset.
+          Unscored items will have a value of -np.inf.
         """
-        recommendations = {}
-
-        for user_id in user_ids:
-            X_user = self.recommendations_dataframe[self.recommendations_dataframe['UserID'] == user_id]
-
+        if self.model is None:
+            raise ValueError("Model has not been trained. Call the fit method first.")
+    
+        # Initialize score matrix
+        scores_matrix = np.full((len(user_id_array), self.n_items), -np.inf, dtype=np.float32)
+    
+        # Ensure item IDs are mapped to indices
+        item_index_map = {item_id: idx for idx, item_id in enumerate(range(self.n_items))}
+    
+        for user_index, user_id in enumerate(user_id_array):
+            # Filter user-specific data
+            user_features = self.training_dataframe[self.training_dataframe['UserID'] == user_id]
+    
+            # If scoring only a subset of items
+            if items_to_compute is not None:
+                user_features = user_features[user_features['ItemID'].isin(items_to_compute)]
+    
+            # Prepare feature matrix for prediction
+            X_user = user_features.drop(['Label'], axis=1)
+    
             # Predict scores
-            user_scores = self.model.predict(X_user)
-            X_user['score'] = user_scores
-
-            # Sort by score
-            X_user_sorted = X_user.sort_values(by='score', ascending=False)
-
-            # Remove seen items if flag is set
-            if remove_seen_flag:
-                seen_items = self.training_dataframe[self.training_dataframe['UserID'] == user_id]['ItemID']
-                X_user_sorted = X_user_sorted[~X_user_sorted['ItemID'].isin(seen_items)]
-
-            # Get top items
-            recommendations[user_id] = X_user_sorted['ItemID'].head(cutoff).tolist()
-
-        return recommendations
+            scores = self.model.predict(X_user)
+    
+            # Map scores back to the full item space
+            item_ids = user_features['ItemID'].values
+            item_indices = [item_index_map[item_id] for item_id in item_ids]
+            scores_matrix[user_index, item_indices] = scores
+    
+        return scores_matrix
