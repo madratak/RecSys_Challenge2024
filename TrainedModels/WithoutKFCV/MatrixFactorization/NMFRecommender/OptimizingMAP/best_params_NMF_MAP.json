@@ -1,0 +1,1 @@
+{"num_factors": 299, "l1_ratio": 0.9139957593694984, "init_type": "nndsvda", "solver_beta_loss": "coordinate_descent:frobenius"}
