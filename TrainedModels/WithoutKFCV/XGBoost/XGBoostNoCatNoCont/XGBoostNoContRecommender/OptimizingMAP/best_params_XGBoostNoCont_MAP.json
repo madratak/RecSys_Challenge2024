@@ -1,0 +1,1 @@
+{"n_estimators": 63, "learning_rate": 0.003418616997465875, "reg_alpha": 0.0002411008146698426, "reg_lambda": 0.008538170886667426, "max_depth": 3, "max_leaves": 6, "grow_policy": "lossguide", "booster": "dart", "tree_method": "hist", "objective": "ndcg"}
