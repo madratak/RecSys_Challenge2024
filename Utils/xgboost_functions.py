@@ -6,11 +6,26 @@ import pandas as pd
 import scipy.sparse as sps
 from tqdm import tqdm
 
+import zipfile
+import os
+import string
+
 import json
 import os
 import time
 
-from Utils.notebookFunctions import upload_file
+# from Utils.notebookFunctions import upload_file
+
+def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
+    
+    # Create a ZipFile object to write to
+    with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Walk through the directory and add all files
+        for root, dirs, files in os.walk(input_directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Add file to the zip, keeping the relative structure
+                zipf.write(file_path, os.path.relpath(file_path, input_directory))
 
 def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo):
     """
@@ -42,7 +57,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         "SLIM_BPR": "SLIM",
     }
 
-    phases = ["Train", "TrainValidation", "TrainValidationTest"]
+    phases = ["Train", "TrainVal", "TrainValTest"]
 
     types = {
         "cg": "CandidateGenerator",
@@ -83,15 +98,20 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
             continue
 
         # Check if the model is already saved
-        saved_model_file_path = os.path.join(
-            GH_PATH, "XGBoost", types[type_recommenders], phase, 
-            f"best_{recommender_name}_{metric}_{phase}_tuned.zip"
-        )
+        dataset_path = f"/kaggle/input/best-{recommender_name.lower()}-{metric.lower()}-{phase.lower()}-tuned"
 
-        if os.path.exists(saved_model_file_path):
+        if os.path.exists(dataset_path):
+
+            saved_model_file_path = os.path.join(
+                GH_PATH, "XGBoost", types[type_recommenders], phase, 
+                f"best_{recommender_name}_{metric}_{phase}_tuned.zip"
+            )
+
+            put_dataset_zipped_into_local_repo(dataset_path, saved_model_file_path)
+            
             print(f"Model for {recommender_name} already exists. Loading the saved model.")
             recommender.load_model(folder_path=os.path.dirname(saved_model_file_path), 
-                                   file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
+                                file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
             fitted_recommenders[recommender_name] = recommender
             continue
 
@@ -107,7 +127,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         # Save the trained model locally
         recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
 
-        zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
+        # zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
 
         # # 50MB limitation management for GitHub pushes
         # try:
