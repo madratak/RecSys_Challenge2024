@@ -10,19 +10,22 @@ import json
 import os
 import time
 
-def fit_recommenders(metric, URM_train, ICM_all, recommenders, GH_PATH):
+from Utils.notebookFunctions import upload_file
+
+def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders):
     """
-    Fit recommenders with the best parameters for a specified evaluation metric.
+    Fit recommenders with the best parameters for a specified evaluation metric and training phase.
 
     Parameters:
     - metric: Metric used for parameter optimization (e.g., "MAP" or "Recall").
+    - phase: Current training phase (e.g., "Train", "TrainValidation", "TrainValidationTest").
     - URM_train: User-Item interaction matrix used for training.
     - ICM_all: Item-Content matrix (if needed by specific recommenders).
     - recommenders: Dictionary mapping recommender names to their classes.
     - GH_PATH: Base path to load best parameter files.
 
     Returns:
-    - features_recommenders: Dictionary of trained recommenders.
+    - fitted_recommenders: Dictionary of trained recommenders.
     """
     paths_to_best_params = {
         "RP3beta": "GraphBased",
@@ -38,43 +41,88 @@ def fit_recommenders(metric, URM_train, ICM_all, recommenders, GH_PATH):
         "SLIMElasticNet": "SLIM",
         "SLIM_BPR": "SLIM",
     }
+
+    phases = ["Train", "TrainValidation", "TrainValidationTest"]
+
+    types = {
+        "cg": "CandidateGenerator",
+        "f": "Feature"
+    }
     
+    if phase not in phases:
+        raise ValueError(f"Invalid phase: '{phase}'. Must be one of {phases}.")
+
+    if type_recommenders not in types:
+        raise ValueError(f"Invalid type: '{type_recommenders}'. Must be one of {types}.")
+
     fitted_recommenders = {}
-    
+
     for recommender_name, recommender_class in recommenders.items():
         start_time = time.time()
-        
+
         print(f"{recommender_name} Model - TRAINING with its best parameters.")
-        
+
         try:
             # Initialize recommender
             recommender = recommender_class(URM_train)
-        except Exception as e:
+        except Exception:
             recommender = recommender_class(URM_train, ICM_all)
-        
+
         # Load best parameters
         param_file_path = os.path.join(
             GH_PATH, paths_to_best_params[recommender_name], 
             f"{recommender_name}Recommender", f"Optimizing{metric}", 
             f"best_params_{recommender_name}_{metric}.json"
         )
-        
+
         try:
             with open(param_file_path, 'r') as best_params_json:
                 best_params = json.load(best_params_json)
         except FileNotFoundError:
             print(f"Error: Parameter file not found for {recommender_name} at {param_file_path}. Skipping.")
             continue
-        
+
+        # Check if the model is already saved
+        saved_model_file_path = os.path.join(
+            GH_PATH, "XGBoost", types[type_recommenders], phase, 
+            f"best_{recommender_name}_{metric}_{phase}_tuned.zip"
+        )
+
+        if os.path.exists(saved_model_file_path):
+            print(f"Model for {recommender_name} already exists. Loading the saved model.")
+            recommender.load_model(folder_path=os.path.dirname(saved_model_file_path), 
+                                   file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
+            fitted_recommenders[recommender_name] = recommender
+            continue
+
         # Train recommender with best parameters
         recommender.fit(**best_params)
-        
+
         # Save the trained recommender
         fitted_recommenders[recommender_name] = recommender
-        
+
         elapsed_time = time.time() - start_time
         print(f"Training of {recommender_name} completed in {elapsed_time:.2f} seconds.\n")
-    
+
+        # Save the trained model locally
+        recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
+
+        zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
+
+        # 50MB limitation management for GitHub pushes
+        if (os.path.getsize(zip_file_path) / (1024 * 1024)) < 50:
+            try:
+                upload_file(
+                    zip_file_path,  
+                    saved_model_file_path, 
+                    f"{recommender_name} recommender tuned with best parameters for {phase} (from Kaggle notebook)",
+                    repo
+                )
+            except Exception as e:
+                print(f"Error while uploading {zip_file_path} to GitHub: {e}")
+        else:
+            print(f"\nThe best recommender was not saved on GitHub because its size exceeds 50 MB.")
+
     return fitted_recommenders
 
 
