@@ -12,7 +12,7 @@ import time
 
 from Utils.notebookFunctions import upload_file
 
-def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders):
+def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo):
     """
     Fit recommenders with the best parameters for a specified evaluation metric and training phase.
 
