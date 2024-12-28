@@ -109,16 +109,16 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
 
         zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
 
-        # 50MB limitation management for GitHub pushes
-        try:
-            upload_file(
-                zip_file_path,  
-                saved_model_file_path, 
-                f"{recommender_name} recommender tuned with best parameters for {phase} (from Kaggle notebook)",
-                repo
-            )
-        except Exception as e:
-            print(f"Error while uploading {zip_file_path} to GitHub: {e}")
+        # # 50MB limitation management for GitHub pushes
+        # try:
+        #     upload_file(
+        #         zip_file_path,  
+        #         saved_model_file_path, 
+        #         f"{recommender_name} recommender tuned with best parameters for {phase} (from Kaggle notebook)",
+        #         repo
+        #     )
+        # except Exception as e:
+        #     print(f"Error while uploading {zip_file_path} to GitHub: {e}")
 
     return fitted_recommenders
 
