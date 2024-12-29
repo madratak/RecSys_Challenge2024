@@ -54,7 +54,7 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
 
             # Add the inner zip (_model_state.zip) into the outer zip
             outer_zip.write(inner_zip_path, arcname='_model_state.zip')
-            
+
     # Ensure _model_state exists before proceeding
     if os.path.exists(model_state_directory):
         # Clean up the inner zip file after embedding it in the outer zip
@@ -156,7 +156,9 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         fitted_recommenders[recommender_name] = recommender
 
         elapsed_time = time.time() - start_time
-        print(f"Training of {recommender_name} completed in {seconds_to_biggest_unit(elapsed_time)} seconds.\n")
+        time_value, time_unit = seconds_to_biggest_unit(elapsed_time)
+
+        print(f"Training of {recommender_name} completed in {time_value:.2f} {time_unit}.\n")
 
         # Save the trained model locally
         # recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
