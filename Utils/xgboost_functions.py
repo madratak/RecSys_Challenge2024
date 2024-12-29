@@ -15,6 +15,7 @@ import os
 import time
 
 # from Utils.notebookFunctions import upload_file
+from Utils.seconds_to_biggest_unit import *
 
 def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
     
@@ -121,7 +122,8 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         # Save the trained recommender
         fitted_recommenders[recommender_name] = recommender
 
-        print(f"Training of {recommender_name} completed.\n")
+        elapsed_time = time.time() - start_time
+        print(f"Training of {recommender_name} completed in {seconds_to_biggest_unit(elapsed_time)} seconds.\n")
 
         # Save the trained model locally
         recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
