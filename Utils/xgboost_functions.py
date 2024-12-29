@@ -18,6 +18,10 @@ import time
 from Utils.seconds_to_biggest_unit import *
 
 def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
+
+    # Ensure the output directory exists
+    output_dir = os.path.dirname(output_zip_file)
+    os.makedirs(output_dir, exist_ok=True)  # Creates missing directories if necessary
     
     # Create a ZipFile object to write to
     with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
