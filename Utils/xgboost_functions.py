@@ -29,16 +29,15 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
     model_state_directory = os.path.join(input_directory, '_model_state')
 
     # Ensure _model_state exists before proceeding
-    if not os.path.exists(model_state_directory):
-        raise FileNotFoundError(f"The '_model_state' directory was not found in {input_directory}")
-
-    # Step 2: Create the inner zip file for the _model_state directory
-    inner_zip_path = os.path.join(output_dir, '_model_state.zip')
-    with zipfile.ZipFile(inner_zip_path, 'w', zipfile.ZIP_DEFLATED) as inner_zip:
-        for root, dirs, files in os.walk(model_state_directory):
-            for file in files:
-                file_path = os.path.join(root, file)
-                inner_zip.write(file_path, os.path.relpath(file_path, model_state_directory))
+    if os.path.exists(model_state_directory):
+        
+        # Step 2: Create the inner zip file for the _model_state directory
+        inner_zip_path = os.path.join(output_dir, '_model_state.zip')
+        with zipfile.ZipFile(inner_zip_path, 'w', zipfile.ZIP_DEFLATED) as inner_zip:
+            for root, dirs, files in os.walk(model_state_directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    inner_zip.write(file_path, os.path.relpath(file_path, model_state_directory))
     
     # Step 3: Create the outer zip file and add the rest of the Model directory excluding _model_state
     with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as outer_zip:
@@ -50,11 +49,16 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
                 file_path = os.path.join(root, file)
                 outer_zip.write(file_path, os.path.relpath(file_path, input_directory))
         
-        # Add the inner zip (_model_state.zip) into the outer zip
-        outer_zip.write(inner_zip_path, arcname='_model_state.zip')
-    
-    # Clean up the inner zip file after embedding it in the outer zip
-    os.remove(inner_zip_path)
+        # Ensure _model_state exists before proceeding
+        if os.path.exists(model_state_directory):
+
+            # Add the inner zip (_model_state.zip) into the outer zip
+            outer_zip.write(inner_zip_path, arcname='_model_state.zip')
+            
+    # Ensure _model_state exists before proceeding
+    if os.path.exists(model_state_directory):
+        # Clean up the inner zip file after embedding it in the outer zip
+        os.remove(inner_zip_path)
 
 def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo):
     """
