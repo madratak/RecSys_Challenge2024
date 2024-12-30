@@ -146,6 +146,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
             recommender.load_model(folder_path=os.path.dirname(saved_model_file_path), 
                                 file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
             fitted_recommenders[recommender_name] = recommender
+            print()
             continue
 
         # Train recommender with best parameters
