@@ -184,10 +184,10 @@ def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_rec
 
     Parameters:
     - URM: Sparse matrix for user-item interactions (training or testing set).
-    - reference_URM: Sparse matrix for user-item interactions (reference set for validation or testing, optional).
     - candidate_generator_recommenders: Dictionary of recommenders generating candidate recommendations.
     - features_recommenders: Dictionary of recommenders providing additional features.
     - ICM: Sparse matrix of item-content features.
+    - reference_URM: Sparse matrix for user-item interactions (reference set for validation or testing, optional).
     - cutoff: Number of recommendations to consider from each recommender.
     - config: Dictionary containing configuration, e.g., for categorical encoding.
 
