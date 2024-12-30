@@ -189,7 +189,8 @@ def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_rec
     - ICM: Sparse matrix of item-content features.
     - reference_URM: Sparse matrix for user-item interactions (reference set for validation or testing, optional).
     - cutoff: Number of recommendations to consider from each recommender.
-    - config: Dictionary containing configuration, e.g., for categorical encoding.
+    - categorical: Whether to encode categorical features (e.g., user and item IDs).
+    - contents: Whether to include content-based features from the item-content matrix (ICM).
 
     Returns:
     - interaction_dataframe: DataFrame of features.
