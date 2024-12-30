@@ -268,5 +268,8 @@ def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_rec
     if categorical:
         interaction_dataframe["UserID"] = interaction_dataframe["UserID"].astype("category")
         interaction_dataframe["ItemID"] = interaction_dataframe["ItemID"].astype("category")
+    else:
+        interaction_dataframe["UserID"] = interaction_dataframe["UserID"].astype("int")
+        interaction_dataframe["ItemID"] = interaction_dataframe["ItemID"].astype("int")
 
     return interaction_dataframe, groups
