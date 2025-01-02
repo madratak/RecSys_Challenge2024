@@ -11,24 +11,16 @@ class XGBoostRankerRecommender(BaseRecommender):
 
     RECOMMENDER_NAME = "XGBoostRankerRecommender"
 
-    def __init__(self, URM_train, training_dataframe, verbose=True):
+    def __init__(self, URM_train, X_train, y_train, evaluation_dataframe, verbose=True):
         super(XGBoostRankerRecommender, self).__init__(URM_train)
 
-        self.training_dataframe = training_dataframe
-        self.recommendations_dataframe = None
+        self.X_train = X_train
+        self.y_train = y_train
+        self.evaluation_dataframe = evaluation_dataframe
         self.model = None
         self.verbose = verbose
 
-    def set_recommendations_dataframe(self, recommendations_dataframe):
-        """
-        Update the recommendations dataframe.
-
-        Parameters:
-        - recommendations_dataframe: New dataframe to be used for recommendations.
-        """
-        self.recommendations_dataframe = recommendations_dataframe
-
-    def fit(self, X_train, y_train, groups, n_estimators=50, learning_rate=0.1, reg_alpha=0.1, 
+    def fit(self, groups, n_estimators=50, learning_rate=0.1, reg_alpha=0.1, 
             reg_lambda=0.1, max_depth=5, max_leaves=0, grow_policy="depthwise", 
             objective="pairwise", booster="gbtree", random_seed=None, tree_method="hist"):
         """
@@ -69,8 +61,8 @@ class XGBoostRankerRecommender(BaseRecommender):
         )
 
         self.model.fit(
-            X_train,
-            y_train,
+            self.X_train,
+            self.y_train,
             group=groups,
             verbose=self.verbose
         )
@@ -99,7 +91,7 @@ class XGBoostRankerRecommender(BaseRecommender):
     
         for user_index, user_id in enumerate(user_id_array):
             # Filter user-specific data
-            user_features = self.training_dataframe[self.training_dataframe['UserID'] == user_id]
+            user_features = self.evaluation_dataframe[self.evaluation_dataframe['UserID'] == user_id]
     
             # If scoring only a subset of items
             if items_to_compute is not None:

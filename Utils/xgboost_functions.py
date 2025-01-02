@@ -10,6 +10,12 @@ import zipfile
 import os
 import string
 
+
+import warnings
+import gc
+from scipy.stats import skew, kurtosis
+from numpy import linalg as LA
+
 import json
 import os
 import time
@@ -161,7 +167,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         print(f"Training of {recommender_name} completed in {time_value:.2f} {time_unit}.\n")
 
         # Save the trained model locally
-        recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
+        # recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
 
         # zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
 
@@ -177,3 +183,140 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         #     print(f"Error while uploading {zip_file_path} to GitHub: {e}")
 
     return fitted_recommenders
+
+def create_XGBoost_dataframe(URM, candidate_generator_recommenders, features_recommenders, ICM, reference_URM=None, cutoff=50, categorical=False, contents=False):
+    """
+    Create a DataFrame for a recommendation system pipeline, including additional feature generation from recommenders.
+
+    Parameters:
+    - URM: Sparse matrix for user-item interactions (training or testing set).
+    - candidate_generator_recommenders: Dictionary of recommenders generating candidate recommendations.
+    - features_recommenders: Dictionary of recommenders providing additional features.
+    - ICM: Sparse matrix of item-content features.
+    - reference_URM: Sparse matrix for user-item interactions (reference set for validation or testing, optional).
+    - cutoff: Number of recommendations to consider from each recommender.
+    - categorical: Whether to encode categorical features (e.g., user and item IDs).
+    - contents: Whether to include content-based features from the item-content matrix (ICM).
+
+    Returns:
+    - interaction_dataframe: DataFrame of features.
+    - groups: Array indicating group sizes by user.
+    """
+    n_users, n_items = URM.shape
+
+    # Initialize DataFrame to store recommendations
+    interaction_dataframe = pd.DataFrame(index=range(0, n_users), columns=["ItemID"])
+    interaction_dataframe.index.name = 'UserID'
+
+    for user_id in tqdm(range(n_users)):
+        recommendations = np.array([])
+
+        # Generate candidate recommendations from candidate generators
+        for candidate_recommender in candidate_generator_recommenders.values():
+            candidate_recommendations = candidate_recommender.recommend(user_id, cutoff=cutoff)
+            recommendations = np.union1d(recommendations, candidate_recommendations)
+
+        interaction_dataframe.loc[user_id, "ItemID"] = recommendations
+
+    # Expand the recommendations into rows
+    interaction_dataframe = interaction_dataframe.explode("ItemID")
+
+    if reference_URM is not None:
+        # Map reference data to user-item pairs for generating labels
+        reference_URM_coo = sps.coo_matrix(reference_URM)
+        correct_recommendations = pd.DataFrame({"UserID": reference_URM_coo.row,
+                                                "ItemID": reference_URM_coo.col})
+
+        # Merge to identify correct recommendations
+        interaction_dataframe = pd.merge(interaction_dataframe, correct_recommendations, on=['UserID', 'ItemID'], how='left', indicator='Exist')
+        interaction_dataframe["Label"] = interaction_dataframe["Exist"] == "both"
+        interaction_dataframe.drop(columns=['Exist'], inplace=True)
+
+        # Set UserID as the index for efficient updates
+        interaction_dataframe = interaction_dataframe.set_index('UserID')
+
+    # Add feature recommender scores and positions, and count feature recommenders
+    interaction_dataframe['feature_recommender_count'] = 0  # Initialize the count column
+    for user_id in tqdm(range(n_users)):
+        
+        item_list = interaction_dataframe.loc[user_id, "ItemID"].values.tolist()
+        item_list = np.array(item_list, dtype=int)
+        
+        sum_item_positions = []
+        
+        for rec_label, rec_instance in features_recommenders.items():
+        
+            all_item_scores = rec_instance._compute_item_score([user_id], items_to_compute=item_list)
+            all_item_scores[0, item_list] = all_item_scores[0, item_list] / (LA.norm(all_item_scores[0, item_list], np.inf, keepdims=True) + 1e-6)
+            
+            interaction_dataframe.loc[user_id, f"{rec_label}_score"] = all_item_scores[0, item_list]            
+
+            item_positions = np.empty(len(item_list), dtype=int)
+            sorted_items = np.argsort(-all_item_scores[0, item_list])  # Sort in descending order of scores
+            item_positions[sorted_items] = np.arange(1, len(item_list) + 1) # Rank starts at 1
+
+            interaction_dataframe.loc[user_id, f"{rec_label}_position"] = item_positions
+            
+            # Count how many items in item_list are in the top 10
+            count = np.isin(item_list, item_list[sorted_items[:10]])
+            interaction_dataframe.loc[user_id, "feature_recommender_count"] += count
+
+            sum_item_positions.append(item_positions)
+
+        # Calculate statistical features on position columns
+        interaction_dataframe.loc[user_id,'Mean_Position'] = np.array(sum_item_positions).mean(axis=0)
+        interaction_dataframe.loc[user_id, 'Std_Position'] = np.array(sum_item_positions).std(axis=0, ddof=1)
+        interaction_dataframe.loc[user_id, 'Min_Position'] = np.array(sum_item_positions).min(axis=0)
+        interaction_dataframe.loc[user_id, 'Max_Position'] = np.array(sum_item_positions).max(axis=0)
+        interaction_dataframe.loc[user_id, 'Median_Position'] = np.median(np.array(sum_item_positions), axis=0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # Ignore RuntimeWarnings
+            interaction_dataframe.loc[user_id, 'Skew_Position'] = skew(sum_item_positions)
+            interaction_dataframe.loc[user_id, 'Kurtosis_Position'] = kurtosis(sum_item_positions)
+                
+    del all_item_scores, item_positions, item_list, sum_item_positions
+    gc.collect()  
+
+    # Reset index for further processing
+    interaction_dataframe = interaction_dataframe.reset_index()
+    interaction_dataframe = interaction_dataframe.rename(columns={"index": "UserID"})
+
+    # Add item popularity feature
+    item_popularity = np.ediff1d(sps.csc_matrix(URM).indptr)
+    item_popularity = item_popularity / item_popularity.max()
+    interaction_dataframe['item_popularity'] = item_popularity[interaction_dataframe["ItemID"].values.astype(int)]
+
+    # Add user profile length feature
+    user_popularity = np.ediff1d(sps.csr_matrix(URM).indptr)
+    user_popularity = user_popularity / user_popularity.max()
+    interaction_dataframe['user_profile_len'] = user_popularity[interaction_dataframe["UserID"].values.astype(int)]
+
+    # Add content-based features from ICM
+    if contents:
+        features_df = pd.DataFrame.sparse.from_spmatrix(ICM)
+        interaction_dataframe = interaction_dataframe.set_index('ItemID').join(features_df, how='inner')
+        interaction_dataframe = interaction_dataframe.reset_index()
+        interaction_dataframe = interaction_dataframe.rename(columns={"index": "ItemID"})
+
+    # Clean and sort data
+    interaction_dataframe = interaction_dataframe.sort_values("UserID").reset_index()
+    interaction_dataframe.drop(columns=['index'], inplace=True)
+
+
+    # Group size for each user
+    if reference_URM is not None:
+        groups = interaction_dataframe.groupby("UserID").size().values
+
+    # Encode categorical features if specified in the config
+    if categorical:
+        interaction_dataframe["UserID"] = interaction_dataframe["UserID"].astype("category")
+        interaction_dataframe["ItemID"] = interaction_dataframe["ItemID"].astype("category")
+    else:
+        interaction_dataframe["UserID"] = interaction_dataframe["UserID"].astype("int")
+        interaction_dataframe["ItemID"] = interaction_dataframe["ItemID"].astype("int")
+
+    # Return the result
+    if reference_URM is not None:
+        return interaction_dataframe, groups
+    else: 
+        return interaction_dataframe
