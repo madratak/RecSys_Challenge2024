@@ -91,14 +91,14 @@ class XGBoostRankerRecommender(BaseRecommender):
     
         for user_index, user_id in enumerate(user_id_array):
             # Filter user-specific data
-            X_user = self.evaluation_dataframe[self.evaluation_dataframe['UserID'] == user_id]
+            user_features = self.evaluation_dataframe[self.evaluation_dataframe['UserID'] == user_id]
     
             # If scoring only a subset of items
             if items_to_compute is not None:
                 user_features = user_features[user_features['ItemID'].isin(items_to_compute)]
     
             # Predict scores
-            scores = self.model.predict(X_user)
+            scores = self.model.predict(user_features)
     
             # Map scores back to the full item space
             item_ids = user_features['ItemID'].values
