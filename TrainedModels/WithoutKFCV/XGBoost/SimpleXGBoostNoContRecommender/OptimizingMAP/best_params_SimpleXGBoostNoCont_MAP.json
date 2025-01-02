@@ -1,1 +1,0 @@
-{"booster": "dart", "grow_policy": "depthwise", "learning_rate": 0.014162022372128404, "max_depth": 3, "max_leaves": 130, "n_estimators": 93, "objective": "map", "reg_alpha": 0.0004217393810310225, "reg_lambda": 0.013135344040332814}
