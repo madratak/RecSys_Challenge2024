@@ -94,6 +94,15 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         "MultVAE": "Neural",
         "SLIMElasticNet": "SLIM",
         "SLIM_BPR": "SLIM",
+
+        "ItemKNNCBF75V1": "KNN",
+        "SLIMElasticNet75V2": "SLIM",
+        "RP3beta75V1": "GraphBased",
+        
+        "ItemKNNCBF100V1": "KNN", 
+        "SLIMElasticNet100V1": "SLIM",
+        "RP3beta100V1": "GraphBased",
+                
     }
 
     phases = ["Train", "TrainVal", "TrainValTest"]
