@@ -108,21 +108,21 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
                 
     }
 
-    extra_params = {
-        "SLIMElasticNet75V2": {
-            "positive_only"= True
-        },
-        "RP3beta75V1": {
-            "implicit"=True, 
-            "normalize_similarity"=True
-        },
-        "SLIMElasticNet100V1":{
-            "positive_only"= True
-        },
-        "RP3beta100V1": {
-            "implicit"=True, 
-            "normalize_similarity"=True
-        }
+    extra_params = {  
+        "SLIMElasticNet75V2": {  
+            "positive_only": True  
+        },  
+        "RP3beta75V1": {  
+            "implicit": True,   
+            "normalize_similarity": True  
+        },  
+        "SLIMElasticNet100V1": {  
+            "positive_only": True 
+        },  
+        "RP3beta100V1": {  
+            "implicit": True,   
+            "normalize_similarity": True 
+        }  
     }
 
     phases = ["Train", "TrainVal", "TrainValTest"]
