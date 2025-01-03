@@ -10,6 +10,8 @@ import zipfile
 import os
 import string
 
+import pickle  
+from scipy import sparse 
 
 import warnings
 import gc
@@ -66,7 +68,7 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
         # Clean up the inner zip file after embedding it in the outer zip
         os.remove(inner_zip_path)
 
-def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo):
+def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo, save_output_kaggle=False):
     """
     Fit recommenders with the best parameters for a specified evaluation metric and training phase.
 
@@ -103,6 +105,23 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         "SLIMElasticNet100V1": "SLIM",
         "RP3beta100V1": "GraphBased"
                 
+    }
+
+    extra_params = {
+        "SLIMElasticNet75V2": {
+            "positive_only"= True
+        },
+        "RP3beta75V1": {
+            "implicit"=True, 
+            "normalize_similarity"=True
+        },
+        "SLIMElasticNet100V1":{
+            "positive_only"= True
+        },
+        "RP3beta100V1": {
+            "implicit"=True, 
+            "normalize_similarity"=True
+        }
     }
 
     phases = ["Train", "TrainVal", "TrainValTest"]
@@ -164,9 +183,32 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
             print()
             continue
 
-        # Train recommender with best parameters
-        recommender.fit(**best_params)
+        
+        _best_params = best_params.copy()  # Create a copy of best_params  
+        
+        try:  
+            # Check if there are extra parameters for the recommender model  
+            if recommender_name in extra_params:  
+                _best_params.update(extra_params[recommender_name])  # Update _best_params with extra parameters  
+            
+            # Try to train recommender with updated parameters  
+            recommender.fit(**_best_params)  
+            
+        except Exception as e:  
+            print(f"Error with updated parameters for {recommender_name}: {e}. Trying with original best parameters.")  
+            
+            try:  
+                # Fallback to original best_params if an error occurred  
+                recommender.fit(**best_params)  
+            except Exception as e:  
+                print(f"Error: Parameters are not matched for {recommender_name} even with original best parameters. Skipping.")  
+                continue  # Skip to the next iteration
 
+
+        if save_output_kaggle:
+            with open('recommender_name.pkl', 'wb') as f:  
+                pickle.dump(recommender, f)
+        
         # Save the trained recommender
         fitted_recommenders[recommender_name] = recommender
 
