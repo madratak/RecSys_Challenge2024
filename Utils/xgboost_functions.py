@@ -207,7 +207,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
 
 
         if save_output_kaggle:
-            with open('recommender_name.pkl', 'wb') as f:  
+            with open(f'{recommender_name}.pkl', 'wb') as f:  
                 pickle.dump(recommender, f)
             
             # Move the file to the output directory  
