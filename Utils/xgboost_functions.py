@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sps
 from tqdm import tqdm
+import shutil  
 
 import zipfile
 import os
@@ -208,7 +209,11 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         if save_output_kaggle:
             with open('recommender_name.pkl', 'wb') as f:  
                 pickle.dump(recommender, f)
-        
+            
+            # Move the file to the output directory  
+            shutil.move(f'{recommender_name}.pkl', f'/kaggle/working/{recommender_name}.pkl')
+            print(f"The {recommender_name} model saved on /kaggle/working/{recommender_name}.pkl")
+
         # Save the trained recommender
         fitted_recommenders[recommender_name] = recommender
 
