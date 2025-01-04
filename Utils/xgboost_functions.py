@@ -145,7 +145,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
     
     for recommender_name, recommender_class in recommenders.items():
         start_time = time.time()
-        print(recommender_name, isinstance(tuned_on_kaggle, dict) , tuned_on_kaggle[recommender_name])
+        print("#####", recommender_name, isinstance(tuned_on_kaggle, dict) , tuned_on_kaggle[recommender_name])
         
         if isinstance(tuned_on_kaggle, dict) and tuned_on_kaggle[recommender_name]:
             print(f"{recommender_name} Model - Start loading model from kaggle")
