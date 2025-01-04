@@ -140,7 +140,6 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         raise ValueError(f"Invalid type: '{type_recommenders}'. Must be one of {types}.")
 
 
-    if
     
     fitted_recommenders = {}
     
