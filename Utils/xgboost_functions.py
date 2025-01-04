@@ -6,6 +6,7 @@ import pandas as pd
 import scipy.sparse as sps
 from tqdm import tqdm
 import shutil  
+import pickle
 
 import zipfile
 import os
@@ -69,7 +70,7 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
         # Clean up the inner zip file after embedding it in the outer zip
         os.remove(inner_zip_path)
 
-def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo, save_output_kaggle=False):
+def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo, save_output_kaggle=False, tuned_on_kaggle=False, tuned_model_path=""):
     """
     Fit recommenders with the best parameters for a specified evaluation metric and training phase.
 
@@ -138,105 +139,123 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
     if type_recommenders not in types:
         raise ValueError(f"Invalid type: '{type_recommenders}'. Must be one of {types}.")
 
-    fitted_recommenders = {}
 
+    if
+    
+    fitted_recommenders = {}
+    
     for recommender_name, recommender_class in recommenders.items():
         start_time = time.time()
+        if isinstance(tuned_on_kaggle, dict) and tuned_on_kaggle[recommender_name]:
+            print(f"{recommender_name} Model - Start loading model from kaggle")
 
-        print(f"{recommender_name} Model - TRAINING with its best parameters.")
-
-        try:
-            # Initialize recommender
-            recommender = recommender_class(URM_train)
-        except Exception:
-            recommender = recommender_class(URM_train, ICM_all)
-
-        # Load best parameters
-        param_file_path = os.path.join(
-            GH_PATH, paths_to_best_params[recommender_name], 
-            f"{recommender_name}Recommender", f"Optimizing{metric}", 
-            f"best_params_{recommender_name}_{metric}.json"
-        )
-
-        try:
-            with open(param_file_path, 'r') as best_params_json:
-                best_params = json.load(best_params_json)
-        except FileNotFoundError:
-            print(f"Error: Parameter file not found for {recommender_name} at {param_file_path}. Skipping.")
-            continue
-
-        # Check if the model is already saved
-        dataset_path = f"/kaggle/input/best-{recommender_name.lower()}-{metric.lower()}-{phase.lower()}-tuned"
-
-        if os.path.exists(dataset_path):
-
-            saved_model_file_path = os.path.join(
-                GH_PATH, "XGBoost", types[type_recommenders], phase, 
-                f"best_{recommender_name}_{metric}_{phase}_tuned.zip"
+            try:
+                with open(f'/kaggle/input/{tuned_model_path}/other/default/1/{recommender_name}.pkl', 'rb') as model:
+                    recommender = pickle.load(model)
+                fitted_recommenders[recommender_name] = recommender
+                continue
+            except FileNotFoundError:
+                print(f"Error: tuned model not found for {recommender_name} at {f'/kaggle/input/{tuned_model_path}/other/default/1/{recommender_name}.pkl'}.")
+                tuned_on_kaggle[recommender_name] = False
+                
+        
+        if (isinstance(tuned_on_kaggle, dict) and not tuned_on_kaggle[recommender_name]) or \
+        (isinstance(tuned_on_kaggle, bool) and not tuned_on_kaggle):
+            
+            print(f"{recommender_name} Model - TRAINING with its best parameters.")
+    
+            try:
+                # Initialize recommender
+                recommender = recommender_class(URM_train)
+            except Exception:
+                recommender = recommender_class(URM_train, ICM_all)
+                
+            # Load best parameters
+            param_file_path = os.path.join(
+                GH_PATH, paths_to_best_params[recommender_name], 
+                f"{recommender_name}Recommender", f"Optimizing{metric}", 
+                f"best_params_{recommender_name}_{metric}.json"
             )
-
-            put_dataset_zipped_into_local_repo(dataset_path, saved_model_file_path)
+    
+            try:
+                with open(param_file_path, 'r') as best_params_json:
+                    best_params = json.load(best_params_json)
+            except FileNotFoundError:
+                print(f"Error: Parameter file not found for {recommender_name} at {param_file_path}. Skipping.")
+                continue
+    
+            # Check if the model is already saved
+            dataset_path = f"/kaggle/input/best-{recommender_name.lower()}-{metric.lower()}-{phase.lower()}-tuned"
+    
+            if os.path.exists(dataset_path):
+    
+                saved_model_file_path = os.path.join(
+                    GH_PATH, "XGBoost", types[type_recommenders], phase, 
+                    f"best_{recommender_name}_{metric}_{phase}_tuned.zip"
+                )
+    
+                put_dataset_zipped_into_local_repo(dataset_path, saved_model_file_path)
+                
+                print(f"Model for {recommender_name} already exists. Loading the saved model.")
+                recommender.load_model(folder_path=os.path.dirname(saved_model_file_path), 
+                                    file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
+                fitted_recommenders[recommender_name] = recommender
+                print()
+                continue
+    
             
-            print(f"Model for {recommender_name} already exists. Loading the saved model.")
-            recommender.load_model(folder_path=os.path.dirname(saved_model_file_path), 
-                                file_name=os.path.basename(saved_model_file_path).replace('.zip', ''))
-            fitted_recommenders[recommender_name] = recommender
-            print()
-            continue
-
-        
-        _best_params = best_params.copy()  # Create a copy of best_params  
-        
-        try:  
-            # Check if there are extra parameters for the recommender model  
-            if recommender_name in extra_params:  
-                _best_params.update(extra_params[recommender_name])  # Update _best_params with extra parameters  
-            
-            # Try to train recommender with updated parameters  
-            recommender.fit(**_best_params)  
-            
-        except Exception as e:  
-            print(f"Error with updated parameters for {recommender_name}: {e}. Trying with original best parameters.")  
+            _best_params = best_params.copy()  # Create a copy of best_params  
             
             try:  
-                # Fallback to original best_params if an error occurred  
-                recommender.fit(**best_params)  
+                # Check if there are extra parameters for the recommender model  
+                if recommender_name in extra_params:  
+                    _best_params.update(extra_params[recommender_name])  # Update _best_params with extra parameters  
+                
+                # Try to train recommender with updated parameters  
+                recommender.fit(**_best_params)  
+                
             except Exception as e:  
-                print(f"Error: Parameters are not matched for {recommender_name} even with original best parameters. Skipping.")  
-                continue  # Skip to the next iteration
-
-
-        if save_output_kaggle:
-            with open(f'{recommender_name}.pkl', 'wb') as f:  
-                pickle.dump(recommender, f)
-            
-            # Move the file to the output directory  
-            shutil.move(f'{recommender_name}.pkl', f'/kaggle/working/{recommender_name}.pkl')
-            print(f"The {recommender_name} model saved on /kaggle/working/{recommender_name}.pkl")
-
-        # Save the trained recommender
-        fitted_recommenders[recommender_name] = recommender
-
-        elapsed_time = time.time() - start_time
-        time_value, time_unit = seconds_to_biggest_unit(elapsed_time)
-
-        print(f"Training of {recommender_name} completed in {time_value:.2f} {time_unit}.\n")
-
-        # Save the trained model locally
-        # recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
-
-        # zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
-
-        # # 50MB limitation management for GitHub pushes
-        # try:
-        #     upload_file(
-        #         zip_file_path,  
-        #         saved_model_file_path, 
-        #         f"{recommender_name} recommender tuned with best parameters for {phase} (from Kaggle notebook)",
-        #         repo
-        #     )
-        # except Exception as e:
-        #     print(f"Error while uploading {zip_file_path} to GitHub: {e}")
+                print(f"Error with updated parameters for {recommender_name}: {e}. Trying with original best parameters.")  
+                
+                try:  
+                    # Fallback to original best_params if an error occurred  
+                    recommender.fit(**best_params)  
+                except Exception as e:  
+                    print(f"Error: Parameters are not matched for {recommender_name} even with original best parameters. Skipping.")  
+                    continue  # Skip to the next iteration
+    
+    
+            if save_output_kaggle:
+                with open(f'{recommender_name}.pkl', 'wb') as f:  
+                    pickle.dump(recommender, f)
+                
+                # Move the file to the output directory  
+                shutil.move(f'{recommender_name}.pkl', f'/kaggle/working/{recommender_name}.pkl')
+                print(f"The {recommender_name} model saved on /kaggle/working/{recommender_name}.pkl")
+    
+            # Save the trained recommender
+            fitted_recommenders[recommender_name] = recommender
+    
+            elapsed_time = time.time() - start_time
+            time_value, time_unit = seconds_to_biggest_unit(elapsed_time)
+    
+            print(f"Training of {recommender_name} completed in {time_value:.2f} {time_unit}.\n")
+    
+            # Save the trained model locally
+            # recommender.save_model(folder_path='/kaggle/working/', file_name=f"best_{recommender_name}_{metric}_{phase}_tuned")
+    
+            # zip_file_path = f"/kaggle/working/best_{recommender_name}_{metric}_{phase}_tuned.zip"
+    
+            # # 50MB limitation management for GitHub pushes
+            # try:
+            #     upload_file(
+            #         zip_file_path,  
+            #         saved_model_file_path, 
+            #         f"{recommender_name} recommender tuned with best parameters for {phase} (from Kaggle notebook)",
+            #         repo
+            #     )
+            # except Exception as e:
+            #     print(f"Error while uploading {zip_file_path} to GitHub: {e}")
 
     return fitted_recommenders
 
