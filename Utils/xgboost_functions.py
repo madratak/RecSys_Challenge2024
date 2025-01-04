@@ -147,7 +147,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         start_time = time.time()
         
         if isinstance(tuned_on_kaggle, dict) and tuned_on_kaggle[recommender_name]:
-            print(f"{recommender_name} Model - Start loading model from kaggle")
+            print(f"\n{recommender_name} Model - Start loading model from kaggle")
 
             try:
                 with open(f'/kaggle/input/{tuned_model_path}/other/default/1/{recommender_name}.pkl', 'rb') as model:
