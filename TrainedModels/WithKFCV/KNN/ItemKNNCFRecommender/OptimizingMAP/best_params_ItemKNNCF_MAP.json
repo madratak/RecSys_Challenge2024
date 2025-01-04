@@ -1,1 +1,1 @@
-{"similarity": "cosine", "topK": 6, "shrink": 128, "feature_weighting": "TF-IDF"}
+{"similarity": "tversky", "topK": 11, "shrink": 16, "feature_weighting": "TF-IDF", "tversky_alpha": 0.9143013375619704, "tversky_beta": 1.9604450913585005}
