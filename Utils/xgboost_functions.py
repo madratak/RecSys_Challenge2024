@@ -145,7 +145,6 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
     
     for recommender_name, recommender_class in recommenders.items():
         start_time = time.time()
-        print("#####", recommender_name, isinstance(tuned_on_kaggle, dict) , tuned_on_kaggle[recommender_name])
         
         if isinstance(tuned_on_kaggle, dict) and tuned_on_kaggle[recommender_name]:
             print(f"{recommender_name} Model - Start loading model from kaggle")
@@ -154,6 +153,7 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
                 with open(f'/kaggle/input/{tuned_model_path}/other/default/1/{recommender_name}.pkl', 'rb') as model:
                     recommender = pickle.load(model)
                 fitted_recommenders[recommender_name] = recommender
+                print(f"{recommender_name} model loaded successfully from kaggle")  
                 continue
             except FileNotFoundError:
                 print(f"Error: tuned model not found for {recommender_name} at {f'/kaggle/input/{tuned_model_path}/other/default/1/{recommender_name}.pkl'}.")
