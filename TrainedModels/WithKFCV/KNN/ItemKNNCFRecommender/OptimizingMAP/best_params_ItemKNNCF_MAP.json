@@ -1,1 +1,1 @@
-{"similarity": "tversky", "topK": 11, "shrink": 16, "feature_weighting": "TF-IDF", "tversky_alpha": 0.9143013375619704, "tversky_beta": 1.9604450913585005}
+{"similarity": "tversky", "topK": 11, "shrink": 30, "feature_weighting": "none", "tversky_alpha": 0.06322371949045463, "tversky_beta": 1.827729234583476}
