@@ -1,1 +1,1 @@
-{"topK": 23, "alpha": 0.57910589149787, "beta": 0.32238373870682785, "normalize_similarity": true, "implicit": false}
+{"topK": 16, "alpha": 0.5504798322241172, "beta": 0.20844178237791977, "normalize_similarity": true, "implicit": true}
