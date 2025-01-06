@@ -1,1 +1,1 @@
-{"similarity": "asymmetric", "topK": 745, "shrink": 876, "feature_weighting": "BM25", "asymmetric_alpha": 0.6911870134368665}
+{"similarity": "asymmetric", "topK": 750, "shrink": 551, "feature_weighting": "BM25", "asymmetric_alpha": 0.7938258356843384}
