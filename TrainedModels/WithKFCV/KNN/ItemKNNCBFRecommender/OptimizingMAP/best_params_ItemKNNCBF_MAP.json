@@ -1,0 +1,1 @@
+{"similarity": "cosine", "topK": 12, "shrink": 525, "feature_weighting": "TF-IDF"}
