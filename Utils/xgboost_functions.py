@@ -70,7 +70,7 @@ def put_dataset_zipped_into_local_repo(input_directory, output_zip_file):
         # Clean up the inner zip file after embedding it in the outer zip
         os.remove(inner_zip_path)
 
-def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo, save_output_kaggle=False, tuned_on_kaggle=False, tuned_model_path=""):
+def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, type_recommenders, repo, save_output_kaggle=False, tuned_on_kaggle=False, tuned_model_path="", take_kfcv_models=False):
     """
     Fit recommenders with the best parameters for a specified evaluation metric and training phase.
 
@@ -132,6 +132,8 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
         "cg": "CandidateGenerator",
         "f": "Feature"
     }
+
+    kfcv_models = ["RP3beta", "P3alpha", "ItemKNNCF", "ItemKNNCBF", "UserKNNCF", "PureSVDItem", "ScaledPureSVD", "SLIM_BPR"]
     
     if phase not in phases:
         raise ValueError(f"Invalid phase: '{phase}'. Must be one of {phases}.")
@@ -170,10 +172,15 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
                 recommender = recommender_class(URM_train)
             except Exception:
                 recommender = recommender_class(URM_train, ICM_all)
-                
-            # Load best parameters
+            
+            # Load best parameters from KFCV or not
+            if take_kfcv_models and recommender_name in kfcv_models:
+                PATH = "TrainedModels/WithKFCV"
+            else:
+                PATH = GH_PATH
+
             param_file_path = os.path.join(
-                GH_PATH, paths_to_best_params[recommender_name], 
+                PATH, paths_to_best_params[recommender_name], 
                 f"{recommender_name}Recommender", f"Optimizing{metric}", 
                 f"best_params_{recommender_name}_{metric}.json"
             )
