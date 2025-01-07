@@ -1,1 +1,1 @@
-{"n_estimators": 397, "learning_rate": 0.017380904782069412, "reg_alpha": 0.3038005533937369, "reg_lambda": 0.05862146909129511, "max_depth": 5, "max_leaves": 106, "grow_policy": "lossguide", "booster": "gbtree", "objective": "map"}
+{"n_estimators": 300, "learning_rate": 0.08755207370190422, "reg_alpha": 0.0007986102264876907, "reg_lambda": 0.12459053271910413, "max_depth": 5, "max_leaves": 60, "grow_policy": "lossguide", "booster": "gbtree", "objective": "ndcg"}
