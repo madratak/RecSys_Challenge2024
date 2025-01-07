@@ -176,8 +176,10 @@ def fit_recommenders(metric, phase, URM_train, ICM_all, recommenders, GH_PATH, t
             # Load best parameters from KFCV or not
             if take_kfcv_models and recommender_name in kfcv_models:
                 PATH = "TrainedModels/WithKFCV"
+                print("KFCV version.")
             else:
                 PATH = GH_PATH
+                print("No KFCV version.")
 
             param_file_path = os.path.join(
                 PATH, paths_to_best_params[recommender_name], 
